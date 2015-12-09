@@ -261,25 +261,46 @@ jvmtiError set_callbacks(jvmtiEnv *jvmti) {
 }
 
 JNIEXPORT jint JNICALL
-Agent_OnAttach(JavaVM *vm, char *options, void *reserved) {
+init(JavaVM *vm, char *options, void *reserved, int onload) {
     open_map_file();
 
-    unfold_simple = strstr(options, "unfoldsimple") != NULL;
-    unfold_inlined_methods = strstr(options, "unfold") != NULL || unfold_simple;
-    print_method_signatures = strstr(options, "msig") != NULL;
-    print_source_loc = strstr(options, "sourcepos") != NULL;
-    clean_class_names = strstr(options, "dottedclass") != NULL;
+    if(options) {
+        unfold_simple = strstr(options, "unfoldsimple") != NULL;
+        unfold_inlined_methods = strstr(options, "unfold") != NULL || unfold_simple;
+        print_method_signatures = strstr(options, "msig") != NULL;
+        print_source_loc = strstr(options, "sourcepos") != NULL;
+        clean_class_names = strstr(options, "dottedclass") != NULL;
+    } else {
+        unfold_simple = 1;
+        unfold_inlined_methods = 0;
+        print_method_signatures = 0;
+        print_source_loc = 0;
+        clean_class_names = 0;
+    }
 
     jvmtiEnv *jvmti;
     (*vm)->GetEnv(vm, (void **)&jvmti, JVMTI_VERSION_1);
     enable_capabilities(jvmti);
     set_callbacks(jvmti);
     set_notification_mode(jvmti, JVMTI_ENABLE);
-    (*jvmti)->GenerateEvents(jvmti, JVMTI_EVENT_DYNAMIC_CODE_GENERATED);
-    (*jvmti)->GenerateEvents(jvmti, JVMTI_EVENT_COMPILED_METHOD_LOAD);
-    set_notification_mode(jvmti, JVMTI_DISABLE);
-    close_map_file();
+
+    if(onload == 0){
+        (*jvmti)->GenerateEvents(jvmti, JVMTI_EVENT_DYNAMIC_CODE_GENERATED);
+        (*jvmti)->GenerateEvents(jvmti, JVMTI_EVENT_COMPILED_METHOD_LOAD);
+    }
+    //set_notification_mode(jvmti, JVMTI_DISABLE);
+    //close_map_file();
 
     return 0;
+}
+
+JNIEXPORT jint JNICALL
+Agent_OnAttach(JavaVM *vm, char *options, void *reserved) {
+	return init(vm, options, reserved, 0);
+}
+
+JNIEXPORT jint JNICALL 
+Agent_OnLoad(JavaVM *vm, char *options, void *reserved){
+    return init(vm, options, reserved, 1);
 }
 
