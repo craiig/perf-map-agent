@@ -272,7 +272,7 @@ init(JavaVM *vm, char *options, void *reserved, int onload) {
         clean_class_names = strstr(options, "dottedclass") != NULL;
     } else {
         unfold_simple = 1;
-        unfold_inlined_methods = 0;
+        unfold_inlined_methods = 1;
         print_method_signatures = 0;
         print_source_loc = 0;
         clean_class_names = 0;
